@@ -34,6 +34,7 @@ from core.ocr.baiduocr import get_text_from_image as bai_get_text
 from core.ocr.spaceocr import get_text_from_image as ocrspace_get_text
 from utils.backup import save_question_answers_to_file, get_qa_list, upload_to_cloud
 from utils.process_stdout import ProcessStdout
+import re
 
 logger = logging.getLogger("assistant")
 handler = logging.handlers.WatchedFileHandler("assistant.log")
@@ -105,37 +106,55 @@ def pre_process_question(keyword):
 
 def sync_data_daemon(stdoutpipe):
     qa_li = get_qa_list("screenshots/QA.txt")
-    ok = upload_to_cloud(qa_li)
-    if ok:
-        stdoutpipe.put("同步信息到云端成功")
-    else:
-        stdoutpipe.put("同步信息到云端错误")
+    # ok = upload_to_cloud(qa_li)
+    # if ok:
+    #     stdoutpipe.put("同步信息到云端成功")
+    # else:
+    #     stdoutpipe.put("同步信息到云端错误")
 
+def check_path(path):
+    exists = os.path.exists(path)
+    if (not exists):
+        os.makedirs(path, 0x777, True)
 
 def prompt_message():
     global game_type
     print("""
 请选择答题节目:
     1. 百万英雄
-    2. 冲顶大会
-    3. 芝士超人
-    4. UC答题
-    5. 自适应
+    2. 百万赢家
+    3. 冲顶大会
+    4. 芝士超人
+    5. 知识英雄
+    6. 疯狂夺金
+    7. 黄金十秒
+    8. 点题成金
+    9. UC答题
+    10. 自适应
 """)
     game_type = input("输入节目序号: ")
     if game_type == "1":
         game_type = '百万英雄'
     elif game_type == "2":
-        game_type = '冲顶大会'
+    	  game_type = '百万赢家'
     elif game_type == "3":
-        game_type = "芝士超人"
+        game_type = '冲顶大会'
     elif game_type == "4":
-        game_type = "UC答题"
+        game_type = "芝士超人"
     elif game_type == "5":
+    		game_type = '知识英雄'
+    elif game_type == "6":
+    		game_type = '疯狂夺金'
+    elif game_type == "7":
+    		game_type = '黄金十秒'
+    elif game_type == "8":
+    		game_type = '点题成金'
+    elif game_type == "9":
+        game_type = "UC答题"
+    elif game_type == "10":
         game_type = "自适应"
     else:
         game_type = '自适应'
-
 
 def main():
     args = parse_args()
@@ -184,8 +203,12 @@ def main():
         true_flag, real_question, question, answers = parse_question_and_answer(keywords)
 
         ### parse for answer
-        answers = map(lambda a: a.rsplit(":")[-1], answers)
-        answers = list(map(lambda a: a.rsplit(".")[-1], answers))
+        #answers = map(lambda a: a.rsplit(":")[-1], answers)
+        #answers = list(map(lambda a: a.rsplit(".")[-1], answers))
+        for i in range(len(answers)):
+            a = re.sub('\s', '', answers[i])
+            a = re.sub(u"^[0-9A-Za-z]+[.:。]+", '', a)
+            answers[i] = a
 
         print("~" * 60)
         print("{0}\n{1}".format(real_question, "\n".join(answers)))
@@ -218,16 +241,18 @@ def main():
         end = time.time()
         print("use {0} 秒".format(end - start))
 
-        save_screen(directory=data_directory)
+        save_screen(directory_src=data_directory, directory_dst=os.path.join(data_directory, game_type))
         save_question_answers_to_file(real_question, answers, directory=data_directory)
 
     prompt_message()
+    check_path(os.path.join(data_directory, game_type))
     while True:
         enter = input("按Enter键开始，切换游戏请输入s，按ESC键退出...\n")
         if enter == chr(27):
             break
         if enter == 's':
             prompt_message()
+            check_path(os.path.join(data_directory, game_type))
         try:
             __inner_job()
         except Exception as e:

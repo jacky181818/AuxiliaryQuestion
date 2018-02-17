@@ -116,15 +116,15 @@ def capture_screen(filename="screenshot.png", directory="."):
         os.system("{0} pull /sdcard/{1} {2}".format(adb_bin, filename, os.path.join(directory, filename)))
 
 
-def save_screen(filename="screenshot.png", directory="."):
+def save_screen(filename="screenshot.png", directory_src=".", directory_dst="."):
     """
     Save screen for further test
     :param filename:
     :param directory:
     :return:
     """
-    copyfile(os.path.join(directory, filename),
-             os.path.join(directory, datetime.now().strftime("%m%d_%H%M%S").join(os.path.splitext(filename))))
+    copyfile(os.path.join(directory_src, filename),
+             os.path.join(directory_dst, datetime.now().strftime("%m%d_%H%M%S").join(os.path.splitext(filename))))
 
 
 def auto_find_crop_area(source_file):
